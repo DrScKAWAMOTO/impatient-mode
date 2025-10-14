@@ -1,158 +1,48 @@
-// ------------------------------
-// tkita 版 impatient-mode.js (WebKit対応 + 画面ログ)
-// ------------------------------
+# Clone the two dependencies of this package in sibling directories:
+#   $ git clone https://github.com/hniksic/emacs-htmlize ../htmlize
+#   $ git clone https://github.com/skeeto/emacs-web-server ../simple-httpd
+#
+# Or set LDFLAGS to point at these packages elsewhere:
+#     $ make LDFLAGS='-L path/to/htmlize -L path/to/simple-httpd'
+.POSIX:
+.SUFFIXES: .el .elc
+CURL    = curl -L -o
+EMACS   = emacs
+LDFLAGS = -L ../simple-httpd -L ../htmlize
+VERSION = 1.1
+GITHUB  = https://raw.githubusercontent.com
 
-// ------------------------------
-// 基本設定
-// ------------------------------
-var buffer = window.location.pathname.split('/')[3];
-var max_period = 60000;
-var min_period = 1000;
-var next_period = min_period;
-var alpha = 1.2;
-var current_id = '-1';
+DIST = README.md index.html index.css impatient-mode.js
 
-// ------------------------------
-// タイマー関連
-// ------------------------------
-var nextTimeout = function() {
-    var next = next_period;
-    next_period = Math.min(max_period, next_period * alpha);
-    return next;
-};
+all: compile
 
-var resetTimeout = function() {
-    next_period = min_period;
-};
+compile: impatient-mode.elc
 
-// ------------------------------
-// marked.js 設定 (v4 UMD)
-// ------------------------------
-marked.setOptions({ langPrefix: '' });
+package: impatient-mode-$(VERSION).tar
 
-var renderer = new marked.Renderer();
-renderer.code = function(code, lang) {
-    if (lang === 'mermaid') {
-        return '<pre class="mermaid">' + code + '</pre>';
-    } else {
-        return '<pre><code>' + code + '</code></pre>';
-    }
-};
+impatient-mode-$(VERSION).tar: impatient-mode.el $(DIST)
+	rm -rf impatient-mode-$(VERSION)/
+	mkdir impatient-mode-$(VERSION)/
+	cp impatient-mode.el $(DIST) impatient-mode-$(VERSION)/
+	tar cf $@ impatient-mode-$(VERSION)/
+	rm -rf impatient-mode-$(VERSION)/
 
-// ------------------------------
-// Markdown -> HTML
-// ------------------------------
-var md2html = function(resCount, resMarkdownText) {
-    console.log("md2html called: resCount=" + resCount);
-    var el = document.getElementById('marked');
-    if (!el) {
-        console.error("md2html: #marked element not found");
-        return;
-    }
+clean:
+	rm -f impatient-mode-$(VERSION).tar impatient-mode.elc github-markdown.css simple-httpd.el mermaid.min.js mermaid.min.js.map highlight.pack.min.js highlight.github.min.css markdown-it.min.js
 
-    if (!resCount) {
-        el.innerHTML = 'error parsing the response from emacs';
-        xhr.onreadystatechange = function() {};
-        xhr.abort();
-        return;
-    }
+run: impatient-mode.elc
+	$(EMACS) -Q $(LDFLAGS) -l impatient-mode.elc \
+		 impatient-mode.el \
+		 -f impatient-mode -f httpd-start
 
-    current_id = resCount;
+.el.elc:
+	$(EMACS) -Q -batch $(LDFLAGS) -f batch-byte-compile $<
 
-    try {
-        // Markdown を HTML に変換
-        el.innerHTML = marked.parse(resMarkdownText, { renderer: renderer });
-
-        // highlight.js v11 初期化
-        if (typeof hljs !== 'undefined' && hljs.highlightAll) {
-            hljs.highlightAll();
-            console.log("hljs.highlightAll executed");
-        }
-
-        // mermaid 初期化
-        if (typeof mermaid !== 'undefined' && mermaid.init) {
-            mermaid.init(undefined, el.querySelectorAll('.language-mermaid'));
-            console.log("mermaid.init executed");
-        }
-
-        console.log("md2html: rendering complete");
-
-    } catch (err) {
-        console.error("md2html error: " + err);
-        el.innerHTML = '<pre style="color:red">Markdown rendering error<br>' + err + '</pre>';
-    }
-};
-
-// ------------------------------
-// スクロール操作
-// ------------------------------
-var impCtrl = {
-    'Goto': function(props) {
-        if (props === 'Top') {
-            window.scrollTo(0, 0);
-        } else {
-            var e = document.documentElement;
-            window.scroll(0, e.scrollHeight - e.clientHeight);
-        }
-        console.log("impCtrl: Goto " + props);
-    },
-    'Recenter': function(props) {
-        window.scroll(0, document.documentElement.scrollHeight * parseFloat(props));
-        console.log("impCtrl: Recenter " + props);
-    },
-    'Scroll': function(props) {
-        if (typeof window.scrollByLines === 'function') {
-            window.scrollByLines(props);
-            console.log("impCtrl: Scroll " + props);
-        }
-    }
-};
-
-// ------------------------------
-// XHR
-// ------------------------------
-var xhr = new XMLHttpRequest();
-
-xhr.onreadystatechange = function() {
-    console.log("xhr readyState=" + xhr.readyState + " status=" + xhr.status);
-    if (xhr.readyState === 4) {
-        resetTimeout();
-
-        var ctrl = xhr.getResponseHeader('X-Imp-Ctrl');
-        if (ctrl && ctrl !== 'nil') {
-            var parts = ctrl.split('/');
-            if (impCtrl[parts[0]]) {
-                impCtrl[parts[0]](parts[1]);
-            }
-        }
-
-        md2html(xhr.getResponseHeader('X-Imp-Count'), xhr.responseText);
-        httpRequest();
-    }
-};
-
-xhr.onerror = function() {
-    console.error("xhr.onerror: readyState=" + xhr.readyState + " status=" + xhr.status);
-    if (xhr.readyState === 4 && xhr.status === 0) {
-        xhr.abort();
-    } else {
-        setTimeout(httpRequest, nextTimeout());
-    }
-};
-
-var httpRequest = function() {
-    console.log("httpRequest: sending request for buffer " + buffer + " id=" + current_id);
-    xhr.open('GET', '/imp/buffer/' + buffer + '?id=' + current_id);
-    xhr.send();
-};
-
-// ------------------------------
-// DOMContentLoaded 後に開始（WebKit対応のため少し遅延）
-// ------------------------------
-document.addEventListener('DOMContentLoaded', function() {
-    console.log("DOMContentLoaded event");
-    // タイトル更新
-    var titleEl = document.getElementById('title');
-    if (titleEl) titleEl.textContent = decodeURI(buffer);
-    setTimeout(httpRequest, 50);
-});
+get:
+	$(CURL) github-markdown.css       https://cdn.jsdelivr.net/npm/github-markdown-css@5.2.0/github-markdown.min.css
+	$(CURL) simple-httpd.el           $(GITHUB)/skeeto/emacs-web-server/master/simple-httpd.el
+	$(CURL) mermaid.min.js            https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js
+	$(CURL) mermaid.min.js.map        https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js.map
+	$(CURL) highlight.pack.min.js     https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js
+	$(CURL) highlight.github.min.css  https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css
+	$(CURL) markdown-it.min.js         https://cdn.jsdelivr.net/npm/markdown-it@13.0.1/dist/markdown-it.min.js
