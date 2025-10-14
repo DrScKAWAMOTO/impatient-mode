@@ -28,7 +28,7 @@ impatient-mode-$(VERSION).tar: impatient-mode.el $(DIST)
 	rm -rf impatient-mode-$(VERSION)/
 
 clean:
-	rm -f impatient-mode-$(VERSION).tar impatient-mode.elc github-markdown.css marked.min.js simple-httpd.el mermaid.min.js mermaid.min.js.map lighlight.pack.min.js highlight.github.min.css
+	rm -f impatient-mode-$(VERSION).tar impatient-mode.elc github-markdown.css marked.min.js simple-httpd.el mermaid.min.js mermaid.min.js.map highlight.pack.min.js highlight.github.min.css
 
 run: impatient-mode.elc
 	$(EMACS) -Q $(LDFLAGS) -l impatient-mode.elc \
