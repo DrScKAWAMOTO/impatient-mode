@@ -7,8 +7,9 @@ markdown の表示、mermaid の表示、highlight の表示が、chrome と xwi
 原因は marked を使っているからだとわかった。
 marked を markdown-it へ変更して、Markdown Preview Enhanced と互換性のあるビューアに仕上げたい。
 mermaid も mathjax も highlight も markdown-it のプラグインとして実装する。
-今から、現状の merked + marmaid + highlight のソースコードを順に私が提示する。
-まずは marked を markdown-it に変更する修正をフルソースコードで提示して。
+markdown-it に対応させた現状の mrkdown-it + marmaid + highlight のソースコードを順に私が提示する。
+この構成で、/imp/static に impatient-mode.js と index.css しか存在しない。
+問題点を洗い出して。
 inputs:
 impatient-mode.el impatient-mode.el
 impatient-mode.js impatient-mode.js

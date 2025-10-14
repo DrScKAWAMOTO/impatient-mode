@@ -57,3 +57,4 @@ get:
 	# MathJax (zip を展開して配置)
 	$(CURL) mathjax.zip              https://github.com/mathjax/MathJax/archive/refs/heads/master.zip
 	unzip -o mathjax.zip -d .
+	cp MathJax-master/tex-mml-chtml.js .
