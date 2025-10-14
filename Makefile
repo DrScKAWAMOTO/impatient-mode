@@ -28,7 +28,7 @@ impatient-mode-$(VERSION).tar: impatient-mode.el $(DIST)
 	rm -rf impatient-mode-$(VERSION)/
 
 clean:
-	rm -f impatient-mode-$(VERSION).tar impatient-mode.elc
+	rm -f impatient-mode-$(VERSION).tar impatient-mode.elc github-markdown.css marked.min.js simple-httpd.el mermaid.min.js mermaid.min.js.map lighlight.pack.min.js highlight.github.min.css
 
 run: impatient-mode.elc
 	$(EMACS) -Q $(LDFLAGS) -l impatient-mode.elc \
@@ -39,8 +39,10 @@ run: impatient-mode.elc
 	$(EMACS) -Q -batch $(LDFLAGS) -f batch-byte-compile $<
 
 get:
-	$(CURL) github-markdown.css $(GITHUB)/sindresorhus/github-markdown-css/gh-pages/github-markdown.css
-	$(CURL) marked.min.js      $(GITHUB)/markedjs/marked/master/marked.min.js
-	$(CURL) simple-httpd.el    $(GITHUB)/skeeto/emacs-web-server/master/simple-httpd.el
-	$(CURL) mermaid.min.js     $(GITHUB)/mermaid-js/mermaid/develop/dist/mermaid.min.js
-	$(CURL) mermaid.min.js.map $(GITHUB)/mermaid-js/mermaid/develop/dist/mermaid.min.js.map
+	$(CURL) github-markdown.css      https://cdn.jsdelivr.net/npm/github-markdown-css@5.2.0/github-markdown.min.css
+	$(CURL) marked.min.js            https://cdn.jsdelivr.net/npm/marked/lib/marked.min.js
+	$(CURL) simple-httpd.el          $(GITHUB)/skeeto/emacs-web-server/master/simple-httpd.el
+	$(CURL) mermaid.min.js           https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js
+	$(CURL) mermaid.min.js.map       https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js.map
+	$(CURL) highlight.pack.min.js    https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js
+	$(CURL) highlight.github.min.css https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css
