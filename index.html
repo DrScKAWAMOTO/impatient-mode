@@ -1,24 +1,32 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <meta charset="utf-8">
-    <title id="title"></title>
+    <head>
+        <meta charset="utf-8">
+        <title id="title"></title>
+        <link rel="stylesheet" href="/imp/static/index.css">
 
-    <!-- CSS -->
-    <link rel="stylesheet" href="/imp/static/index.css">
-    <link rel="stylesheet" href="/imp/static/github-markdown.css">
-    <link rel="stylesheet" href="/imp/static/highlight.github.min.css">
+        <!-- Markdown 全体の GitHub スタイル -->
+        <link rel="stylesheet" href="/imp/static/github-markdown.css">
 
-    <!-- JS ライブラリ -->
-    <script src="/imp/static/markdown-it.min.js"></script>
-    <script src="/imp/static/mermaid.min.js"></script>
-    <script src="/imp/static/highlight.pack.min.js"></script>
-    <script src="/imp/static/tex-mml-chtml.js"></script>
+        <!-- highlight.js の GitHub スタイル -->
+        <link rel="stylesheet" href="/imp/static/highlight.github.min.css">
 
-</head>
-<body>
-    <div id="marked" class="markdown-body"></div>
-    <!-- impatient-mode.js -->
-    <script src="/imp/static/impatient-mode.js"></script>
-</body>
+        <!-- markdown-it (marked の代替) -->
+        <script src="/imp/static/markdown-it.min.js"></script>
+
+        <!-- mermaid.js -->
+        <script src="/imp/static/mermaid.min.js"></script>
+
+        <!-- highlight.js -->
+        <script src="/imp/static/highlight.pack.min.js"></script>
+
+        <!-- MathJax v3 (TeX+MathML+CHTML 配置) -->
+        <script src="/imp/static/mathjax-tex-mml-chtml.js" id="MathJax-script" async></script>
+    </head>
+
+    <body>
+        <div id="marked" class="markdown-body"></div>
+        <!-- impatient-mode.js -->
+        <script src="/imp/static/impatient-mode.js"></script>
+    </body>
 </html>

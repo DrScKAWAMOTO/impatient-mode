@@ -12,7 +12,8 @@ LDFLAGS = -L ../simple-httpd -L ../htmlize
 VERSION = 1.1
 GITHUB  = https://raw.githubusercontent.com
 
-DIST = README.md index.html index.css impatient-mode.js
+# DIST に配布/パッケージ化対象ファイルを追加
+DIST = README.md index.html index.css impatient-mode.js markdown-it.min.js mermaid.min.js mermaid.min.js.map highlight.pack.min.js highlight.github.min.css mathjax-tex-mml-chtml.js
 
 all: compile
 
@@ -28,13 +29,7 @@ impatient-mode-$(VERSION).tar: impatient-mode.el $(DIST)
 	rm -rf impatient-mode-$(VERSION)/
 
 clean:
-	rm -f impatient-mode-$(VERSION).tar impatient-mode.elc \
-          github-markdown.css markdown-it.min.js simple-httpd.el \
-          mermaid.min.js mermaid.min.js.map highlight.pack.min.js \
-          highlight.github.min.css mathjax.zip
-	rm -rf MathJax-master
-	rm -f result.html remove.html struct.html result.json work.cmd work.cmd~
-
+	rm -f impatient-mode-$(VERSION).tar impatient-mode.elc github-markdown.css markdown-it.min.js mermaid.min.js mermaid.min.js.map highlight.pack.min.js highlight.github.min.css mathjax-tex-mml-chtml.js
 
 run: impatient-mode.elc
 	$(EMACS) -Q $(LDFLAGS) -l impatient-mode.elc \
@@ -47,14 +42,15 @@ run: impatient-mode.elc
 get:
 	# CSS
 	$(CURL) github-markdown.css      https://cdn.jsdelivr.net/npm/github-markdown-css@5.2.0/github-markdown.min.css
-	$(CURL) highlight.github.min.css https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css
-	# JS
-	$(CURL) markdown-it.min.js       https://cdn.jsdelivr.net/npm/markdown-it@13.0.1/dist/markdown-it.min.js
+	# markdown-it (marked の代替)
+	$(CURL) markdown-it.min.js       https://cdn.jsdelivr.net/npm/markdown-it/dist/markdown-it.min.js
+	# simple-httpd (Emacs 用)
 	$(CURL) simple-httpd.el          $(GITHUB)/skeeto/emacs-web-server/master/simple-httpd.el
+	# mermaid
 	$(CURL) mermaid.min.js           https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js
 	$(CURL) mermaid.min.js.map       https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js.map
+	# highlight.js
 	$(CURL) highlight.pack.min.js    https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js
-	# MathJax (zip を展開して配置)
-	$(CURL) mathjax.zip              https://github.com/mathjax/MathJax/archive/refs/heads/master.zip
-	unzip -o mathjax.zip -d .
-	cp MathJax-master/tex-mml-chtml.js .
+	$(CURL) highlight.github.min.css https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css
+	# MathJax v3 (TeX+MathML+CHTML)
+	$(CURL) mathjax-tex-mml-chtml.js  https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
