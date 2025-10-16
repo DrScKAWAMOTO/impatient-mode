@@ -1,11 +1,10 @@
-/MathJax-master/
-/mathjax.zip
 *.elc
 *.tar
 *-pkg.el
 .cask
 /github-markdown.css
-/marked.min.js
+/markdown-it.min.js
+/mathjax-tex-mml-chtml.js
 /simple-httpd.el
 /highlight.github.min.css
 /highlight.pack.min.js
