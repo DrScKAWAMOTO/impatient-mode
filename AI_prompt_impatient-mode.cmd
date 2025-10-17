@@ -5,7 +5,8 @@ markdown の表示、mermaid の表示、highlight の表示が、chrome と xwi
 できるようになった。
 marked を markdown-it へ変更して、Markdown Preview Enhanced と互換性のあるビューアに仕上げた。
 mermaid も mathjax も highlight も markdown-it のプラグインとして実装した。
-mermaid を描画した後に同じくらいの空白が出来る。何がわるい？
+WebKit ではうまく表示されるが、chrome では mermaid の図の後に同じくらいの白紙が出る。
+どうやって直す？
 inputs:
 impatient-mode.el impatient-mode.el
 impatient-mode.js impatient-mode.js
