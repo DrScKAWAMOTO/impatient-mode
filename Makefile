@@ -29,7 +29,7 @@ impatient-mode-$(VERSION).tar: impatient-mode.el $(DIST)
 	rm -rf impatient-mode-$(VERSION)/
 
 clean:
-	rm -f impatient-mode-$(VERSION).tar impatient-mode.elc github-markdown.css markdown-it.min.js mermaid.min.js mermaid.min.js.map highlight.pack.min.js highlight.github.min.css mathjax-tex-mml-chtml.js
+	rm -f impatient-mode-$(VERSION).tar impatient-mode.elc simple-httpd.el github-markdown.css markdown-it.min.js mermaid.min.js mermaid.min.js.map highlight.pack.min.js highlight.github.min.css mathjax-tex-mml-chtml.js result.html remove.html struct.html result.json work.cmd work.cmd~
 
 run: impatient-mode.elc
 	$(EMACS) -Q $(LDFLAGS) -l impatient-mode.elc \
