@@ -1,6 +1,6 @@
 // ------------------------------
 // tkita 版 impatient-mode.js — markdown-it 版 (WebKit対応 + 画面ログ)
-// 変更点: marked -> markdown-it に置換。mermaid, MathJax, highlight の初期化順序調整。
+// 修正版: mermaid 二重初期化削除 + div余白リセット
 // ------------------------------
 
 // ------------------------------
@@ -27,12 +27,9 @@ var resetTimeout = function() {
 };
 
 // ------------------------------
-// markdown-it 設定 (marked の代替)
-// - fenced code のうち info が "mermaid" の場合は <div class="mermaid">...</div> に変換して mermaid.init に渡す
-// - ハイライトは highlight.js に委譲（存在すれば highlightAll() を呼ぶ）
+// markdown-it 設定
 // ------------------------------
 (function() {
-    // 簡易エスケープ関数（HTMLエスケープ）
     function escapeHtml(str) {
         return str
             .replace(/&/g, '&amp;')
@@ -42,32 +39,26 @@ var resetTimeout = function() {
             .replace(/'/g, '&#39;');
     }
 
-    // markdown-it をグローバルに用意
     if (typeof window.markdownit === 'undefined') {
         console.error("markdown-it not found: /imp/static/markdown-it.min.js を読み込んでください");
     }
 
-    // markdown-it インスタンス作成
     window._imp_md = window.markdownit({
         html: true,
         linkify: true,
         typographer: true,
-        // highlight 関数：fallback としてプリフォーマットしたものを返す
-        highlight: function (str, lang) {
+        highlight: function(str, lang) {
             if (typeof hljs !== 'undefined' && lang && hljs.getLanguage && hljs.getLanguage(lang)) {
                 try {
                     return '<pre><code class="hljs language-' + lang + '">' +
                         hljs.highlight(str, {language: lang}).value +
                         '</code></pre>';
-                } catch (e) {
-                    // fallthrough
-                }
+                } catch (e) { }
             }
             return '<pre><code>' + escapeHtml(str) + '</code></pre>';
         }
     });
 
-    // fenced code のデフォルトルールを保持
     var defaultFence = window._imp_md.renderer.rules.fence || function(tokens, idx, options, env, slf) {
         var token = tokens[idx];
         var info = token.info ? token.info.trim() : '';
@@ -78,17 +69,17 @@ var resetTimeout = function() {
             + '</code></pre>';
     };
 
-    // mermaid 対応：info が "mermaid" のとき専用出力
+    // mermaid 対応: div余白リセット & 二重レンダリング回避
     window._imp_md.renderer.rules.fence = function(tokens, idx, options, env, slf) {
         var token = tokens[idx];
         var info = token.info ? token.info.trim() : '';
         var lang = info.split(/\s+/g)[0];
         var content = token.content;
         if (lang === 'mermaid') {
-            // mermaid は <div class="mermaid"> の中身を期待するのでそれに合わせる
-            return '<div class="mermaid">' + window._imp_md.utils.escapeHtml(content) + '</div>';
+            return '<div class="mermaid" style="margin:0; padding:0;">' +
+                   window._imp_md.utils.escapeHtml(content) +
+                   '</div>';
         }
-        // デフォルト処理（highlight 関数が適用される）
         return defaultFence(tokens, idx, options, env, slf);
     };
 })();
@@ -114,7 +105,6 @@ var md2html = function(resCount, resMarkdownText) {
     current_id = resCount;
 
     try {
-        // Markdown を HTML に変換（markdown-it を使用）
         if (typeof window._imp_md === 'undefined') {
             el.innerHTML = '<pre style="color:red">markdown-it not loaded</pre>';
             return;
@@ -122,63 +112,30 @@ var md2html = function(resCount, resMarkdownText) {
 
         el.innerHTML = window._imp_md.render(resMarkdownText);
 
-        // highlight.js 初期化（存在するなら）
         if (typeof hljs !== 'undefined' && hljs.highlightAll) {
-            try {
-                hljs.highlightAll();
-                console.log("hljs.highlightAll executed");
-            } catch (e) {
-                console.warn("hljs.highlightAll error:", e);
-            }
+            try { hljs.highlightAll(); } catch (e) { console.warn("hljs.highlightAll error:", e); }
         }
 
-        // mermaid 初期化（存在するなら）
         if (typeof mermaid !== 'undefined') {
             try {
-                // mermaid の自動初期化をオフにしている場合のために明示的に初期化
                 if (mermaid.initialize) {
-                    // mermaid 初期化（安全のため startOnLoad: false）
-                    try { mermaid.initialize({ startOnLoad: false }); } catch (e) { /* ignore */ }
+                    mermaid.initialize({ startOnLoad: false });
                 }
-                // .mermaid 要素を対象に初期化
                 var mermaidEls = el.querySelectorAll('.mermaid');
                 if (mermaidEls && mermaidEls.length > 0) {
-                    // mermaid.init は第1引数にオプション、第2引数に要素集合を取る実装が多い
-                    try {
-                        mermaid.init(undefined, mermaidEls);
-                        console.log("mermaid.init executed");
-                    } catch (e) {
-                        // 互換性のため、個別にレンダリングを試す
-                        mermaidEls.forEach(function(mel, idx) {
-                            try {
-                                var txt = mel.textContent || mel.innerText;
-                                var id = 'mermaid-' + (new Date().getTime()) + '-' + idx;
-                                mel.setAttribute('id', id);
-                                // mermaid では mermaid.mermaidAPI.render を使って個別に描画する場合がある
-                                if (mermaid.mermaidAPI && mermaid.mermaidAPI.render) {
-                                    mermaid.mermaidAPI.render(id + '-svg', txt, function(svgCode) {
-                                        mel.innerHTML = svgCode;
-                                    }, mel);
-                                }
-                            } catch (ee) {
-                                console.warn("mermaid render fallback failed", ee);
-                            }
-                        });
-                    }
+                    // 二重レンダリングを避けるため、ここだけで初期化
+                    mermaid.init(undefined, mermaidEls);
                 }
             } catch (e) {
                 console.warn("mermaid init error:", e);
             }
         }
 
-        // MathJax v3 が読み込まれていれば、挿入 DOM に対して typeset を呼ぶ
         if (window.MathJax && MathJax.typesetPromise) {
             try {
                 MathJax.typesetPromise([el]).then(function() {
                     console.log("MathJax.typesetPromise completed");
-                }).catch(function(err) {
-                    console.warn("MathJax.typesetPromise error:", err);
-                });
+                }).catch(function(err) { console.warn("MathJax.typesetPromise error:", err); });
             } catch (e) {
                 console.warn("MathJax typeset call error:", e);
             }
@@ -197,12 +154,8 @@ var md2html = function(resCount, resMarkdownText) {
 // ------------------------------
 var impCtrl = {
     'Goto': function(props) {
-        if (props === 'Top') {
-            window.scrollTo(0, 0);
-        } else {
-            var e = document.documentElement;
-            window.scroll(0, e.scrollHeight - e.clientHeight);
-        }
+        if (props === 'Top') window.scrollTo(0, 0);
+        else window.scroll(0, document.documentElement.scrollHeight - document.documentElement.clientHeight);
         console.log("impCtrl: Goto " + props);
     },
     'Recenter': function(props) {
@@ -210,10 +163,8 @@ var impCtrl = {
         console.log("impCtrl: Recenter " + props);
     },
     'Scroll': function(props) {
-        if (typeof window.scrollByLines === 'function') {
-            window.scrollByLines(props);
-            console.log("impCtrl: Scroll " + props);
-        }
+        if (typeof window.scrollByLines === 'function') window.scrollByLines(props);
+        console.log("impCtrl: Scroll " + props);
     }
 };
 
@@ -230,9 +181,7 @@ xhr.onreadystatechange = function() {
         var ctrl = xhr.getResponseHeader('X-Imp-Ctrl');
         if (ctrl && ctrl !== 'nil') {
             var parts = ctrl.split('/');
-            if (impCtrl[parts[0]]) {
-                impCtrl[parts[0]](parts[1]);
-            }
+            if (impCtrl[parts[0]]) impCtrl[parts[0]](parts[1]);
         }
 
         md2html(xhr.getResponseHeader('X-Imp-Count'), xhr.responseText);
@@ -242,11 +191,8 @@ xhr.onreadystatechange = function() {
 
 xhr.onerror = function() {
     console.error("xhr.onerror: readyState=" + xhr.readyState + " status=" + xhr.status);
-    if (xhr.readyState === 4 && xhr.status === 0) {
-        xhr.abort();
-    } else {
-        setTimeout(httpRequest, nextTimeout());
-    }
+    if (xhr.readyState === 4 && xhr.status === 0) xhr.abort();
+    else setTimeout(httpRequest, nextTimeout());
 };
 
 var httpRequest = function() {
@@ -256,11 +202,10 @@ var httpRequest = function() {
 };
 
 // ------------------------------
-// DOMContentLoaded 後に開始（WebKit対応のため少し遅延）
+// DOMContentLoaded 後に開始
 // ------------------------------
 document.addEventListener('DOMContentLoaded', function() {
     console.log("DOMContentLoaded event");
-    // タイトル更新
     var titleEl = document.getElementById('title');
     if (titleEl) titleEl.textContent = decodeURI(buffer);
     setTimeout(httpRequest, 50);
