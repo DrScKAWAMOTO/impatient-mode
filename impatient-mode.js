@@ -1,6 +1,7 @@
 // ------------------------------
 // tkita 版 impatient-mode.js — markdown-it 版 (WebKit対応 + 画面ログ)
 // 修正版: mermaid 二重初期化削除 + div余白リセット
+//          + DOM取得 Emacs転送機能追加
 // ------------------------------
 
 // ------------------------------
@@ -112,10 +113,12 @@ var md2html = function(resCount, resMarkdownText) {
 
         el.innerHTML = window._imp_md.render(resMarkdownText);
 
+        // highlight.js の再適用
         if (typeof hljs !== 'undefined' && hljs.highlightAll) {
             try { hljs.highlightAll(); } catch (e) { console.warn("hljs.highlightAll error:", e); }
         }
 
+        // mermaid 初期化
         if (typeof mermaid !== 'undefined') {
             try {
                 if (mermaid.initialize) {
@@ -131,6 +134,7 @@ var md2html = function(resCount, resMarkdownText) {
             }
         }
 
+        // MathJax 初期化
         if (window.MathJax && MathJax.typesetPromise) {
             try {
                 MathJax.typesetPromise([el]).then(function() {
@@ -142,6 +146,21 @@ var md2html = function(resCount, resMarkdownText) {
         }
 
         console.log("md2html: rendering complete");
+
+        // -----------------------------------
+        // 新規追加: DOM取得後に Emacs 側に送信
+        // -----------------------------------
+        // xwidget 上で Emacs にデータを送信するため、window.webkit.messageHandlers を使用
+        // （emacs側で xwidget-webkit-execute-script のコールバックとして処理）
+        if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.impDom) {
+            try {
+                var htmlContent = el.innerHTML;
+                window.webkit.messageHandlers.impDom.postMessage(htmlContent);
+                console.log("DOM content sent to Emacs via impDom handler");
+            } catch (e) {
+                console.warn("DOM postMessage error:", e);
+            }
+        }
 
     } catch (err) {
         console.error("md2html error: " + err);

@@ -17,9 +17,7 @@
 ;; the local server.  There will be a listing of all the buffers that
 ;; currently have impatient-mode enabled.  This is likely to be found
 ;; here:
-
 ;;   http://localhost:8080/imp/
-
 ;; To receive updates the browser issues a long poll on the client
 ;; waiting for the buffer to change -- server push.  The response
 ;; happens in an `after-change-functions' hook.  Buffers that do not
@@ -100,6 +98,9 @@ Set to nil for no delay"
 
 (defvar imp-browser-scroll-lines 3)
 
+;; ------------------------------
+;; スクロール関連関数
+;; ------------------------------
 (defun imp-browser-scroll-up-line (direction)
   (cl-incf imp-last-state)
   (while imp-client-list
@@ -118,6 +119,9 @@ Set to nil for no delay"
     (imp--send-state (pop imp-client-list)
                      (format "Recenter/%s" pos))))
 
+;; ------------------------------
+;; キーバインド設定
+;; ------------------------------
 (let ((map impatient-mode-map))
   (define-key map (kbd "M-<")
     (lambda () (interactive) (imp-browser-scrollto "Top") (beginning-of-buffer)))
@@ -144,6 +148,40 @@ Set to nil for no delay"
          (define-key map (kbd "M-p")
            (lambda () (interactive) (imp-browser-scroll-up-line -1)))
          )))
+
+;; ------------------------------
+;; DOM取得ショートカット追加 (xwidget用)
+;; ------------------------------
+(when imp--enable-xwidget-webkit--p
+  ;; C-c C-e で現在の xwidget WebKit 表示 DOM を取得
+  (define-key map (kbd "C-c C-e")
+    (lambda ()
+      (interactive)
+      (if (fboundp 'xwidget-webkit-execute-script)
+          ;; JS 側で DOM 完全レンダリング後の innerHTML を postMessage
+          (xwidget-webkit-execute-script
+           (selected-window)
+           "if(window._imp_md && document.getElementById('marked')) {
+              window.webkit.messageHandlers.impDom.postMessage(document.getElementById('marked').innerHTML);
+            }")
+        (message "impatient-mode: xwidget WebKit 非対応"))))
+
+  ;; Emacs 側で JS からの postMessage を受信するハンドラ定義
+  (defun imp--xwidget-dom-handler (html-content)
+    "JS 側から送られてきた HTML を受け取り、現在バッファに反映する。
+HTML-CONTENT は文字列。"
+    (interactive)
+    (when (buffer-live-p (current-buffer))
+      (let ((buf (current-buffer)))
+        (with-current-buffer buf
+          ;; バッファ全体を置き換える
+          (erase-buffer)
+          (insert html-content)
+          (goto-char (point-min))
+          (message "impatient-mode: DOM content received and inserted")))))
+
+  ;; ハンドラの別名を登録 (xwidget 内で呼び出す用)
+  (defalias 'imp-xwidget-message-handler 'imp--xwidget-dom-handler))
 
 (defun imp--clear-buffer-modified ()
   (let ((xwb (imp--xwidget-webkit-buffer)))
