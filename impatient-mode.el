@@ -166,18 +166,15 @@ Set to nil for no delay"
             }")
                     (message "impatient-mode: xwidget WebKit 非対応")))))
   ;; Emacs 側で JS からの postMessage を受信するハンドラ定義
-  (defun imp--xwidget-dom-handler (html-content)
-    "JS 側から送られてきた HTML を受け取り、現在バッファに反映する。
-HTML-CONTENT は文字列。"
-    (interactive)
+  (defun imp--xwidget-dom-handler (html-content file-path)
+    "JS 側から送られてきた HTML を受け取り、テンポラリバッファ経由で FILE-PATH に保存する。
+HTML-CONTENT は文字列、FILE-PATH は保存先のフルパス。"
+    (interactive "sHTML content: \nFSave to file: ")
     (when (buffer-live-p (current-buffer))
-      (let ((buf (current-buffer)))
-        (with-current-buffer buf
-          ;; バッファ全体を置き換える
-          (erase-buffer)
-          (insert html-content)
-          (goto-char (point-min))
-          (message "impatient-mode: DOM content received and inserted")))))
+      (with-temp-buffer
+        (insert html-content)
+        (write-region (point-min) (point-max) file-path)
+        (message "impatient-mode: DOM content written to %s" file-path))))
   ;; ハンドラの別名を登録 (xwidget 内で呼び出す用)
   (defalias 'imp-xwidget-message-handler 'imp--xwidget-dom-handler))
 
