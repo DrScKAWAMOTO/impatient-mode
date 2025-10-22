@@ -133,7 +133,6 @@ Set to nil for no delay"
       (imp-browser-recenter (format "0.%d" (* 100 (/ (float (point))
                                                      (float (save-excursion (end-of-buffer) (point)))))))
       (recenter-top-bottom)))
-
   (cond (imp--enable-xwidget-webkit--p
          (define-key map (kbd "C-<down>")
            (lambda () (interactive) (xwidget-webkit-scroll-up-line  1)))
@@ -154,18 +153,18 @@ Set to nil for no delay"
 ;; ------------------------------
 (when imp--enable-xwidget-webkit--p
   ;; C-c C-e で現在の xwidget WebKit 表示 DOM を取得
-  (define-key map (kbd "C-c C-e")
-    (lambda ()
-      (interactive)
-      (if (fboundp 'xwidget-webkit-execute-script)
-          ;; JS 側で DOM 完全レンダリング後の innerHTML を postMessage
-          (xwidget-webkit-execute-script
-           (selected-window)
-           "if(window._imp_md && document.getElementById('marked')) {
+  (let ((map impatient-mode-map))
+    (define-key map (kbd "C-c C-e")
+                (lambda ()
+                  (interactive)
+                  (if (fboundp 'xwidget-webkit-execute-script)
+                      ;; JS 側で DOM 完全レンダリング後の innerHTML を postMessage
+                      (xwidget-webkit-execute-script
+                       (selected-window)
+                       "if(window._imp_md && document.getElementById('marked')) {
               window.webkit.messageHandlers.impDom.postMessage(document.getElementById('marked').innerHTML);
             }")
-        (message "impatient-mode: xwidget WebKit 非対応"))))
-
+                    (message "impatient-mode: xwidget WebKit 非対応")))))
   ;; Emacs 側で JS からの postMessage を受信するハンドラ定義
   (defun imp--xwidget-dom-handler (html-content)
     "JS 側から送られてきた HTML を受け取り、現在バッファに反映する。
@@ -179,7 +178,6 @@ HTML-CONTENT は文字列。"
           (insert html-content)
           (goto-char (point-min))
           (message "impatient-mode: DOM content received and inserted")))))
-
   ;; ハンドラの別名を登録 (xwidget 内で呼び出す用)
   (defalias 'imp-xwidget-message-handler 'imp--xwidget-dom-handler))
 
