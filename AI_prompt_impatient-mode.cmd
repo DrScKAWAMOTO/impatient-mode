@@ -8,4 +8,5 @@ inputs:
 impatient-mode.js impatient-mode.js
 impatient-mode.el impatient-mode.el
 instruction:
-imp--xwidget-dom-handler を、テンポラリバッファに書き込んで指定ファイルにセーブする関数に修正して。
+C-c C-e には、ファイル名を入力する機能がない。
+

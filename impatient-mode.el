@@ -158,12 +158,20 @@ Set to nil for no delay"
                 (lambda ()
                   (interactive)
                   (if (fboundp 'xwidget-webkit-execute-script)
-                      ;; JS 側で DOM 完全レンダリング後の innerHTML を postMessage
-                      (xwidget-webkit-execute-script
-                       (selected-window)
-                       "if(window._imp_md && document.getElementById('marked')) {
-              window.webkit.messageHandlers.impDom.postMessage(document.getElementById('marked').innerHTML);
-            }")
+                      (let ((xwb (car (imp--xwidget-webkit-buffer)))) ; 最初の WebKit バッファを取得
+                        (if xwb
+                            (let ((win (get-buffer-window xwb)))
+                              (if win
+                                  ;; JS 側で DOM 完全レンダリング後の innerHTML を postMessage
+                                  (xwidget-webkit-execute-script
+                                   win
+                                   "if(window._imp_md && document.getElementById('marked')) {
+  window.webkit.messageHandlers.impDom.postMessage(
+    document.getElementById('marked').innerHTML
+  );
+}")
+                                (message "impatient-mode: WebKit バッファは表示されていません")))
+                          (message "impatient-mode: WebKit バッファが見つかりません")))
                     (message "impatient-mode: xwidget WebKit 非対応")))))
   ;; Emacs 側で JS からの postMessage を受信するハンドラ定義
   (defun imp--xwidget-dom-handler (html-content file-path)
