@@ -163,26 +163,31 @@ Set to nil for no delay"
                             (let ((win (get-buffer-window xwb)))
                               (if win
                                   ;; JS 側で DOM 完全レンダリング後の innerHTML を postMessage
-                                  (xwidget-webkit-execute-script
-                                   win
-                                   "if(window._imp_md && document.getElementById('marked')) {
-  window.webkit.messageHandlers.impDom.postMessage(
-    document.getElementById('marked').innerHTML
-  );
-}")
+                                  (progn
+                                    (let ((save-file (read-file-name "Save DOM to file: " nil nil nil "dom.html")))
+                                      (setq imp--xwidget-pending-save-file save-file))
+                                    (xwidget-webkit-execute-script
+                                     win
+                                     "if(window._imp_md && document.getElementById('marked')) {
+  window.webkit.messageHandlers.impDom.postMessage(document.getElementById('marked').innerHTML);
+}"))
                                 (message "impatient-mode: WebKit バッファは表示されていません")))
                           (message "impatient-mode: WebKit バッファが見つかりません")))
                     (message "impatient-mode: xwidget WebKit 非対応")))))
   ;; Emacs 側で JS からの postMessage を受信するハンドラ定義
-  (defun imp--xwidget-dom-handler (html-content file-path)
+  (defun imp--xwidget-dom-handler (html-content)
     "JS 側から送られてきた HTML を受け取り、テンポラリバッファ経由で FILE-PATH に保存する。
 HTML-CONTENT は文字列、FILE-PATH は保存先のフルパス。"
-    (interactive "sHTML content: \nFSave to file: ")
-    (when (buffer-live-p (current-buffer))
-      (with-temp-buffer
-        (insert html-content)
-        (write-region (point-min) (point-max) file-path)
-        (message "impatient-mode: DOM content written to %s" file-path))))
+    (interactive "sHTML content: ")
+    (let ((file-path (or (and (boundp 'imp--xwidget-pending-save-file) imp--xwidget-pending-save-file)
+                         (read-file-name "Save DOM to file: " nil nil nil "dom.html"))))
+      (when (buffer-live-p (current-buffer))
+        (with-temp-buffer
+          (insert html-content)
+          (write-region (point-min) (point-max) file-path)
+          (message "impatient-mode: DOM content written to %s" file-path))
+      (when (boundp 'imp--xwidget-pending-save-file)
+        (setq imp--xwidget-pending-save-file nil)))))
   ;; ハンドラの別名を登録 (xwidget 内で呼び出す用)
   (defalias 'imp-xwidget-message-handler 'imp--xwidget-dom-handler))
 
