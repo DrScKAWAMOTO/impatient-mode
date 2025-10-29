@@ -151,6 +151,7 @@ Set to nil for no delay"
 ;; ------------------------------
 ;; DOM取得ショートカット追加 (xwidget用)
 ;; ------------------------------
+;; 修正版：xwidget DOM 取得ショートカット
 (when imp--enable-xwidget-webkit--p
   ;; C-c C-e で現在の xwidget WebKit 表示 DOM を取得
   (let ((map impatient-mode-map))
@@ -158,22 +159,26 @@ Set to nil for no delay"
                 (lambda ()
                   (interactive)
                   (if (fboundp 'xwidget-webkit-execute-script)
-                      (let ((xwb (car (imp--xwidget-webkit-buffer)))) ; 最初の WebKit バッファを取得
-                        (if xwb
-                            (let ((win (get-buffer-window xwb)))
-                              (if win
-                                  ;; JS 側で DOM 完全レンダリング後の innerHTML を postMessage
-                                  (progn
-                                    (let ((save-file (read-file-name "Save DOM to file: " nil nil nil "dom.html")))
-                                      (setq imp--xwidget-pending-save-file save-file))
-                                    (xwidget-webkit-execute-script
-                                     win
-                                     "if(window._imp_md && document.getElementById('marked')) {
-  window.webkit.messageHandlers.impDom.postMessage(document.getElementById('marked').innerHTML);
-}"))
+                      (let* ((xwb-list (imp--xwidget-webkit-buffer))
+                             (buf-name (car xwb-list)))
+                        (if buf-name
+                            (let* ((buf (get-buffer buf-name))
+                                   ;; バッファ内 xwidget オブジェクトを取得
+                                   (xwb (car (with-current-buffer buf
+                                               (cl-remove-if-not
+                                                (lambda (x) (eq (car x) 'xwidget-webkit))
+                                                xwidget-list)))))
+                              (if xwb
+                                  (let ((save-file (read-file-name "Save DOM to file: " nil nil nil "dom.html")))
+                                    (setq imp--xwidget-pending-save-file save-file)
+                                    (xwidget-webkit-execute-script (cdr xwb)
+                                                                   "if(window._imp_md && document.getElementById('marked')) {
+                                                                      window.webkit.messageHandlers.impDom.postMessage(
+                                                                      document.getElementById('marked').innerHTML);
+                                                                    }"))
                                 (message "impatient-mode: WebKit バッファは表示されていません")))
                           (message "impatient-mode: WebKit バッファが見つかりません")))
-                    (message "impatient-mode: xwidget WebKit 非対応")))))
+                    (message "impatient-mode: xwidget WebKit 非対応"))))))
   ;; Emacs 側で JS からの postMessage を受信するハンドラ定義
   (defun imp--xwidget-dom-handler (html-content)
     "JS 側から送られてきた HTML を受け取り、テンポラリバッファ経由で FILE-PATH に保存する。
