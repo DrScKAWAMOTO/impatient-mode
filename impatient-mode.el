@@ -173,12 +173,12 @@ Set to nil for no delay"
                                     (setq imp--xwidget-pending-save-file save-file)
                                     (xwidget-webkit-execute-script (cdr xwb)
                                                                    "if(window._imp_md && document.getElementById('marked')) {
-                                                                      window.webkit.messageHandlers.impDom.postMessage(
-                                                                      document.getElementById('marked').innerHTML);
-                                                                    }"))
+  window.webkit.messageHandlers.impDom.postMessage(
+  document.getElementById('marked').innerHTML);
+}"))
                                 (message "impatient-mode: WebKit バッファは表示されていません")))
                           (message "impatient-mode: WebKit バッファが見つかりません")))
-                    (message "impatient-mode: xwidget WebKit 非対応"))))))
+                    (message "impatient-mode: xwidget WebKit 非対応")))))
   ;; Emacs 側で JS からの postMessage を受信するハンドラ定義
   (defun imp--xwidget-dom-handler (html-content)
     "JS 側から送られてきた HTML を受け取り、テンポラリバッファ経由で FILE-PATH に保存する。
@@ -251,12 +251,14 @@ buffer."
    (current-buffer)))
 
 (defun imp--xwidget-webkit-buffer ()
-  (let (r)
+  "Return a list of all *xwidget-webkit: ...* buffers and log them to *Messages*."
+  (let (result)
     (dolist (b (buffer-list))
-      (with-current-buffer b
-        (when (string= "xwidget-webkit" (format "%s" mode-name))
-          (setq r (cons (buffer-name) r)))))
-    r))
+      (let ((name (buffer-name b)))
+        (when (string-match-p "^\\*xwidget-webkit: .+\\*$" name)
+          (message "impatient-mode found xwidget buffer: %s" name)
+          (push name result))))
+    result))
 
 (defun imp-visit-buffer (&optional arg)
   "Visit the current buffer in a browser.
