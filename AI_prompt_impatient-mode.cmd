@@ -8,6 +8,9 @@ inputs:
 impatient-mode.js impatient-mode.js
 impatient-mode.el impatient-mode.el
 instruction:
-imp--xwidget-webkit-buffer は、「xwidget-webkit」という名前のバッファを探しているが、これは間違い。
-「*xwidget-webkit: XXXX*」という名前のバッファ(XXXXは任意の文字列)を探して、すべて *Messages* にログ出力し、これらのバッファリストを返却して。
-最重要指示２２箇条を思い出して、修正案を提示して。
+最重要指示２２箇条を思い出すこと。
+C-c C-e に登録された関数は emacs30 では動作しない。
+emacs30 では xwidget-list は xwidget オブジェクトのリストだ。
+emacs30 では xwidget-type はない。
+今の imp--xwidget-webkit-buffer でバッファを限定すれば、そこにある xwidget オブジェクトは webkit 型だ。
+きちんと動作するように修正して。
