@@ -9,12 +9,9 @@ inputs:
 impatient-mode.el impatient-mode.el
 markdown-to-pdf.el markdown-to-pdf.el
 instruction:
-最重要指示２４箇条を思い出すこと。
-markdown-to-pdf.el は emacs30 では動作しない。
-emacs30 では xwidget-list は xwidget オブジェクトのリストだ。
-emacs30 では xwidget-type も xwidget-id も xwidget-plist-get もない。
-今の markdown-to-pdf--xwidget-get-buffer のコードは書き換えてはいけない。
-markdown-to-pdf--xwidget-get-buffer でバッファを限定した後、そこにある xwidget オブジェクトは webkit 型だ。
-xwidget オブジェクト自体を xwidget-webkit-execute-script に渡すこと。
-きちんと動作するように markdown-to-pdf.el を修正して。
-最重要指示２４箇条による提示前のチェックも忘れないこと。
+C-c C-e を入力すると、以下のログまで出た。しかしそれ以降が出ない。原因を究明して。
+markdown-to-pdf found xwidget buffer: *xwidget-webkit: 1200兆円の借金.md*
+markdown-to-pdf: found xwidget buffers=("*xwidget-webkit: 1200兆円の借金.md*")
+markdown-to-pdf: selected buffer=*xwidget-webkit: 1200兆円の借金.md*, xwidget-object=<object>
+markdown-to-pdf: pending save-file set to ~/src/MyNotes/経済関係/dom.html
+markdown-to-pdf: execute-script dispatched to xwidget
