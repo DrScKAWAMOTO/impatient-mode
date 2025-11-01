@@ -33,6 +33,9 @@ HTML-CONTENT は文字列。保存先は `imp--xwidget-pending-save-file`。"
   'markdown-to-pdf--xwidget-dom-handler
   "別名を登録（xwidget 内で呼び出す用）。")
 
+;; ------------------------------
+;; DOM取得ショートカット (xwidget用)
+;; ------------------------------
 (defun markdown-to-pdf-export-dom ()
   "現在表示中の xwidget WebKit から DOM を取得して保存する。
 保存先は対話的に選択できる。"
@@ -42,15 +45,20 @@ HTML-CONTENT は文字列。保存先は `imp--xwidget-pending-save-file`。"
              (buf-name (car xwb-list)))
         (if buf-name
             (let* ((buf (get-buffer buf-name))
-                   (xwb (car (with-current-buffer buf
-                               (cl-remove-if-not
-                                (lambda (x) (eq (car x) 'xwidget-webkit))
-                                xwidget-list)))))
+                   ;; emacs30 では `xwidget-list` はすでに xwidget オブジェクトのリストであり、
+                   ;; 各要素自体が xwidget オブジェクトです。ここではバッファ内で見つかった
+                   ;; 最初の xwidget オブジェクトをそのまま取得して `xwidget-webkit-execute-script`
+                   ;; に渡します（xwidget-id や xwidget-plist-get 等は使用しない）。
+                   (xwb (with-current-buffer buf
+                          (and (boundp 'xwidget-list) xwidget-list
+                               (car xwidget-list)))))
               (if xwb
                   (let ((save-file (read-file-name "Save DOM to file: " nil nil nil "dom.html")))
                     (setq imp--xwidget-pending-save-file save-file)
-                    (xwidget-webkit-execute-script (cdr xwb)
-                                                   "if(window._imp_md && document.getElementById('marked')) {
+                    ;; xwidget オブジェクトを直接渡す（emacs30 の xwidget-webkit-execute-script に合わせる）
+                    (xwidget-webkit-execute-script
+                     xwb
+                     "if(window._imp_md && document.getElementById('marked')) {
   window.webkit.messageHandlers.impDom.postMessage(
   document.getElementById('marked').innerHTML);
 }"))
@@ -61,54 +69,5 @@ HTML-CONTENT は文字列。保存先は `imp--xwidget-pending-save-file`。"
 ;; C-c C-e にバインド
 (define-key impatient-mode-map (kbd "C-c C-e") #'markdown-to-pdf-export-dom)
 
-;; impatient-mode.el から削除した内容
-;; ;; ------------------------------
-;; ;; DOM取得ショートカット追加 (xwidget用)
-;; ;; ------------------------------
-;; ;; 修正版：xwidget DOM 取得ショートカット
-;; (when imp--enable-xwidget-webkit--p
-;;   ;; C-c C-e で現在の xwidget WebKit 表示 DOM を取得
-;;   (let ((map impatient-mode-map))
-;;     (define-key map (kbd "C-c C-e")
-;;                 (lambda ()
-;;                   (interactive)
-;;                   (if (fboundp 'xwidget-webkit-execute-script)
-;;                       (let* ((xwb-list (imp--xwidget-webkit-buffer))
-;;                              (buf-name (car xwb-list)))
-;;                         (if buf-name
-;;                             (let* ((buf (get-buffer buf-name))
-;;                                    ;; バッファ内 xwidget オブジェクトを取得
-;;                                    (xwb (car (with-current-buffer buf
-;;                                                (cl-remove-if-not
-;;                                                 (lambda (x) (eq (car x) 'xwidget-webkit))
-;;                                                 xwidget-list)))))
-;;                               (if xwb
-;;                                   (let ((save-file (read-file-name "Save DOM to file: " nil nil nil "dom.html")))
-;;                                     (setq imp--xwidget-pending-save-file save-file)
-;;                                     (xwidget-webkit-execute-script (cdr xwb)
-;;                                                                    "if(window._imp_md && document.getElementById('marked')) {
-;;   window.webkit.messageHandlers.impDom.postMessage(
-;;   document.getElementById('marked').innerHTML);
-;; }"))
-;;                                 (message "impatient-mode: WebKit バッファは表示されていません")))
-;;                           (message "impatient-mode: WebKit バッファが見つかりません")))
-;;                     (message "impatient-mode: xwidget WebKit 非対応")))))
-;;   ;; Emacs 側で JS からの postMessage を受信するハンドラ定義
-;;   (defun imp--xwidget-dom-handler (html-content)
-;;     "JS 側から送られてきた HTML を受け取り、テンポラリバッファ経由で FILE-PATH に保存する。
-;; HTML-CONTENT は文字列、FILE-PATH は保存先のフルパス。"
-;;     (interactive "sHTML content: ")
-;;     (let ((file-path (or (and (boundp 'imp--xwidget-pending-save-file) imp--xwidget-pending-save-file)
-;;                          (read-file-name "Save DOM to file: " nil nil nil "dom.html"))))
-;;       (when (buffer-live-p (current-buffer))
-;;         (with-temp-buffer
-;;           (insert html-content)
-;;           (write-region (point-min) (point-max) file-path)
-;;           (message "impatient-mode: DOM content written to %s" file-path))
-;;       (when (boundp 'imp--xwidget-pending-save-file)
-;;         (setq imp--xwidget-pending-save-file nil)))))
-;;   ;; ハンドラの別名を登録 (xwidget 内で呼び出す用)
-;;   (defalias 'imp-xwidget-message-handler 'imp--xwidget-dom-handler))
-;;
 (provide 'markdown-to-pdf)
 ;;; markdown-to-pdf.el ends here
